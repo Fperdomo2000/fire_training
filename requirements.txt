@@ -1,0 +1,9 @@
+torch>=2.4
+torchvision>=0.19
+transformers>=4.44
+accelerate>=0.33
+safetensors>=0.4
+numpy>=1.26
+pillow>=10.0
+tifffile>=2024.7
+scikit-learn>=1.3
