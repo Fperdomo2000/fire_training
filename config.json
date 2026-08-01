@@ -1,0 +1,6 @@
+{
+  "venv_path": "/home/fperdomo/fire_training/train-venv",
+  "dataset_png_root": "dataset_png",
+  "dataset_tiff_root": "dataset_tiff",
+  "outputs_dir": "outputs"
+}
