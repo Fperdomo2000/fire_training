@@ -54,6 +54,13 @@ One model is trained per dataset, from the same architecture:
 pip install -r requirements.txt
 ```
 
+On a fresh Ubuntu 22.04 GPU VM (e.g. NVIDIA T4) with nothing installed,
+`scripts/setup_vm.sh` installs the NVIDIA driver, sets up a pyenv-managed
+virtualenv, installs dependencies, and runs `train_png.sh`/`train_tiff.sh`.
+It's re-runnable: if the driver install needs a reboot, re-run it afterward.
+`dataset_png/` and `dataset_tiff/` must already be present next to this
+project before running it.
+
 ## Train
 
 1. **Edit `firenet/training_config.py`** to set hyperparameters (image size,
