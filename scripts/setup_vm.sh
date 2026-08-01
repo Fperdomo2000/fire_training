@@ -22,7 +22,16 @@ if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
 else
     echo "No working NVIDIA driver detected. Installing..."
     sudo apt-get update
-    sudo apt-get install -y ubuntu-drivers-common
+    sudo apt-get install -y --no-install-recommends software-properties-common
+
+    if ! apt-cache show ubuntu-drivers-common >/dev/null 2>&1; then
+        echo "ubuntu-drivers-common is not available from the current apt sources."
+        echo "Enabling the standard Ubuntu repositories and refreshing package lists..."
+        sudo add-apt-repository -y universe multiverse restricted
+        sudo apt-get update
+    fi
+
+    sudo apt-get install -y --no-install-recommends ubuntu-drivers-common
     sudo ubuntu-drivers autoinstall
     echo
     echo "Driver installed but not loaded yet. Reboot the VM, then re-run this script:"
