@@ -46,11 +46,34 @@ One model is trained per dataset, from the same architecture:
 - `firenet/metrics.py` — binary classification metrics (accuracy, precision,
   recall, f1) and the validation-set threshold sweep (`find_best_threshold`).
 - `firenet/train.py` — training entrypoint (`python -m firenet.train ...`).
+- `firenet/classify.py` — inference entrypoint (`python -m firenet.classify ...`),
+  runs a trained checkpoint over a folder of images.
 - `scripts/train_png.sh`, `scripts/train_tiff.sh` — convenience wrappers.
 
 ## Setup
 
+### Configuration
+
+Before training or classifying, edit [`config.json`](config.json) with the paths
+for your environment:
+
+```json
+{
+  "venv_path": "/path/to/your/venv",
+  "dataset_png_root": "dataset_png",
+  "dataset_tiff_root": "dataset_tiff",
+  "outputs_dir": "outputs"
+}
+```
+
+- `venv_path`: absolute path to your Python virtual environment (e.g.,
+  `/home/user/fire_training/train-venv` locally, or `/root/train-venv` on a VM).
+- Other paths can be relative to the project root or absolute.
+
+### Dependencies
+
 ```bash
+source /path/to/venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -63,21 +86,24 @@ project before running it.
 
 ## Train
 
-1. **Edit `firenet/training_config.py`** to set hyperparameters (image size,
+1. **Edit `config.json`** with your venv path and dataset locations.
+
+2. **Edit `firenet/training_config.py`** to set hyperparameters (image size,
    epochs, batch size, learning rate, etc.).
 
-2. Run training:
-
-```bash
-python -m firenet.train --dataset-type png  --data-root dataset_png  --output-dir outputs/efficientnet_v2_s_png
-python -m firenet.train --dataset-type tiff --data-root dataset_tiff --output-dir outputs/efficientnet_v2_s_tiff
-```
-
-or use the convenience wrappers:
+3. Run training via convenience wrappers (which automatically activate the venv):
 
 ```bash
 scripts/train_png.sh
 scripts/train_tiff.sh
+```
+
+Or run directly (requires manual venv activation):
+
+```bash
+source /path/to/venv/bin/activate
+python -m firenet.train --dataset-type png  --data-root dataset_png  --output-dir outputs/efficientnet_v2_s_png
+python -m firenet.train --dataset-type tiff --data-root dataset_tiff --output-dir outputs/efficientnet_v2_s_tiff
 ```
 
 For the tiff run, `band_stats.json` (per-channel mean/std over the training
@@ -106,6 +132,29 @@ use the model elsewhere:
 - `band_stats.json` (tiff only)
 - `validation_metrics.json`, `test_metrics.json` — accuracy/precision/recall/f1
   at the tuned threshold
+
+## Classify
+
+Run a trained checkpoint over a folder of images (recurses, matches `.png` or
+`.tif`/`.tiff` depending on the checkpoint) and writes a CSV of predictions.
+
+Via convenience wrapper (automatically activates venv):
+
+```bash
+scripts/classify.sh --model-path outputs/efficientnet_v2_s_png/final  --input path/to/images --output predictions.csv
+scripts/classify.sh --model-path outputs/efficientnet_v2_s_tiff/final --input path/to/images --output predictions.csv
+```
+
+Or directly (requires manual venv activation):
+
+```bash
+source /path/to/venv/bin/activate
+python -m firenet.classify --model-path outputs/efficientnet_v2_s_png/final  --input path/to/images --output predictions.csv
+python -m firenet.classify --model-path outputs/efficientnet_v2_s_tiff/final --input path/to/images --output predictions.csv
+```
+
+Each prediction uses `config.classification_threshold` (the F1-optimal
+threshold picked during training), not a fixed 0.5.
 
 Reload from anywhere, without needing this project on the path:
 
