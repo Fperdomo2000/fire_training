@@ -2,7 +2,7 @@
 folder of images and write fire/no_fire predictions to a CSV.
 
     python -m firenet.classify --model-path outputs/efficientnet_v2_s_png/final  --input dataset_png/test  --output predictions.csv
-    python -m firenet.classify --model-path outputs/efficientnet_v2_s_tiff/final --input some_folder      --output predictions.csv
+    python -m firenet.classify --model-path outputs/efficientnet_v2_s_tiff/final --input some_folder      --output predictions_png.csv
 
 The image format (.png vs .tif/.tiff) is inferred from the checkpoint's
 `num_channels` (3 or 6), so --input just needs to be a file or a folder to
@@ -30,8 +30,27 @@ def find_images(root: Path, extensions: tuple[str, ...]) -> list[Path]:
 
 def load_array(path: Path, tiff: bool) -> np.ndarray:
     if tiff:
-        return tifffile.imread(path)  # (H, W, 6)
-    return np.array(Image.open(path).convert("RGB"))  # (H, W, 3)
+        return tifffile.imread(path)  # (H, W, 6), uint16
+    return np.array(Image.open(path).convert("RGB"))  # (H, W, 3), uint8
+
+
+def preprocess_array(array: np.ndarray, image_size: int, image_mean: list[float], image_std: list[float]) -> torch.Tensor:
+    """Preprocess image array with proper normalization for uint8 or uint16."""
+    from torchvision.transforms import functional as TF
+
+    tensor = torch.from_numpy(array).permute(2, 0, 1).float()
+
+    # Normalize based on dtype: uint16 -> 65535, uint8 -> 255
+    if array.dtype == np.uint16:
+        tensor = tensor / 65535.0
+    elif array.dtype == np.uint8:
+        tensor = tensor / 255.0
+    else:
+        tensor = tensor / tensor.max()
+
+    tensor = TF.resize(tensor, [image_size, image_size], antialias=True)
+    tensor = TF.normalize(tensor, mean=image_mean, std=image_std)
+    return tensor
 
 
 def parse_args():
@@ -60,9 +79,10 @@ def main():
     rows = []
     for start in range(0, len(paths), args.batch_size):
         batch_paths = paths[start : start + args.batch_size]
-        pixel_values = torch.stack([processor.preprocess_array(load_array(path, tiff)) for path in batch_paths]).to(
-            device
-        )
+        pixel_values = torch.stack([
+            preprocess_array(load_array(path, tiff), processor.image_size, processor.image_mean, processor.image_std)
+            for path in batch_paths
+        ]).to(device)
 
         with torch.no_grad():
             logits = model(pixel_values=pixel_values).logits.cpu().numpy()

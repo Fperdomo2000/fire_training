@@ -59,7 +59,15 @@ class FireDataset(Dataset):
     def _load(self, path: Path) -> torch.Tensor:
         if self.tiff:
             array = tifffile.imread(path)  # (H, W, 6)
-            return torch.from_numpy(array).permute(2, 0, 1).float() / PIXEL_MAX_VALUE
+            tensor = torch.from_numpy(array).permute(2, 0, 1).float()
+            # Normalize based on dtype: uint16 -> divide by 65535, uint8 -> divide by 255
+            if array.dtype == "uint16":
+                tensor = tensor / 65535.0
+            elif array.dtype == "uint8":
+                tensor = tensor / 255.0
+            else:
+                tensor = tensor / tensor.max()  # Fallback: normalize to [0, 1]
+            return tensor
         return TF.to_tensor(Image.open(path).convert("RGB"))  # [3, H, W], float in [0, 1]
 
     def __getitem__(self, idx: int) -> dict:

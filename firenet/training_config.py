@@ -12,12 +12,12 @@ from transformers import TrainingArguments
 image_size = 384
 
 # Training hyperparameters
-num_epochs = 10
+num_epochs = 2 # CAMABIARR
 per_device_train_batch_size = 16
 per_device_eval_batch_size = 32
 learning_rate = 3e-5
 weight_decay = 1e-4
-warmup_ratio = 0.05
+warmup_steps = 50  # ~5% of typical training run (1000 total steps)
 seed = 42
 
 # Dataset (TIFF only): recompute band_stats.json even if a cached one exists
@@ -45,7 +45,7 @@ def get_training_args(output_dir: Path) -> TrainingArguments:
         per_device_eval_batch_size=per_device_eval_batch_size,
         learning_rate=learning_rate,
         weight_decay=weight_decay,
-        warmup_ratio=warmup_ratio,
+        warmup_steps=warmup_steps,
         eval_strategy="epoch",
         save_strategy="epoch",
         save_total_limit=save_total_limit,
